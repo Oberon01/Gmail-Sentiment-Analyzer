@@ -2,6 +2,7 @@
 Fixes logging placement & label-ID lookup.
 Assumes .env with LABEL_ID_REVIEW and TextBlob installed.
 """
+__version__ = "0.9.0-beta"
 
 from __future__ import annotations
 
