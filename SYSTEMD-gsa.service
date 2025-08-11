@@ -1,0 +1,15 @@
+
+[Unit]
+Description=GSA - Gmail Sentiment Analyzer
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=%h/gsa
+ExecStart=/usr/bin/env python -m gmail_poll --daemon
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,22 @@
+#environment
+.venv
+
+# Python
+__pycache__/
+*.pyc
+
+# Local secrets
+.env
+token.pickle
+token.enc
+credentials.json
+*.key
+*.log
+*.yaml
+
+# Docker
+*.tar
+.vscode/
+
+# Output
+gmail_logs/
