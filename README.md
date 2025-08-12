@@ -41,8 +41,10 @@ cd Gmail-Sentiment-Analyzer
 
 # Create/activate a virtual env (optional but recommended)
 python -m venv .venv
+
 # Windows:
 .venv\Scripts\activate
+
 # macOS/Linux:
 source .venv/bin/activate
 
