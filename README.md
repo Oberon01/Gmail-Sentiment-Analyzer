@@ -5,7 +5,6 @@ Autonomous Gmail triage daemon that watches your inbox, scores new mail, and aut
 **Repo:** https://github.com/Oberon01/Gmail-Sentiment-Analyzer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/tag/Oberon01/Gmail-Sentiment-Analyzer?label=release)](https://github.com/Oberon01/Gmail-Sentiment-Analyzer/releases)
 [![Release CI](https://github.com/Oberon01/Gmail-Sentiment-Analyzer/actions/workflows/release.yml/badge.svg)](https://github.com/Oberon01/Gmail-Sentiment-Analyzer/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/Oberon01/Gmail-Sentiment-Analyzer?include_prereleases&sort=semver)](https://github.com/Oberon01/Gmail-Sentiment-Analyzer/releases)
 
