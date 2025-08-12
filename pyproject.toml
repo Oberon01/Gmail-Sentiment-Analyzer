@@ -26,6 +26,12 @@ dependencies = [
 # Uses your existing CLI in gmail_poll.py
 gsa = "gmail_poll:cli"
 
+[project.urls]
+Homepage = "https://github.com/Oberon01/Gmail-Sentiment-Analyzer"
+Issues = "https://github.com/Oberon01/Gmail-Sentiment-Analyzer/issues"
+Changelog = "https://github.com/Oberon01/Gmail-Sentiment-Analyzer/blob/main/CHANGELOG.md"
+
+
 [tool.setuptools]
 # This project is a set of standalone modules (not a package directory)
 py-modules = ["gmail_poll", "authenticate", "list_labels"]
