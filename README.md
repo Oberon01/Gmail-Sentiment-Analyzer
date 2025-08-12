@@ -2,11 +2,16 @@
 
 Autonomous Gmail triage daemon that watches your inbox, scores new mail, and automatically **stars**, **routes for review**, or **silences** the noise.
 
+**Repo:** https://github.com/Oberon01/Gmail-Sentiment-Analyzer
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/tag/Oberon01/Gmail-Sentiment-Analyzer?label=release)](https://github.com/Oberon01/Gmail-Sentiment-Analyzer/releases)
+
 ---
 
 ## Why?
 
-Your inbox should empower you, not bury you. GSA applies lightweight NLP to slice daily mail into three buckets:
+Your inbox should empower you, not bury you. GSA applies lightweight NLP and simple rules to bucket daily mail:
 
 | Bucket                     | Action            | Definition                                    |
 |---------------------------|-------------------|-----------------------------------------------|
@@ -21,11 +26,11 @@ Run as a background daemon (systemd, Task Scheduler, or Docker) and reclaim head
 ## Features
 
 - **Lightweight NLP**: sentiment proxy via TextBlob (CPU-only; no big model).
-- **Rules overlay**: whitelist/blacklist or always-star specific senders/subjects.
+- **Rules overlay**: `rules.yaml` supports `whitelist`, `blacklist`, `always_star`.
 - **Resilient**: exponential backoff for Gmail API calls; won’t crash on blips.
 - **Observable**: logs to console and rotating file `gsa.log`.
-- **Idempotent**: caches processed message IDs to avoid reprocessing.
-- **Dry-run**: see exactly what would happen without changing Gmail.
+- **Idempotent**: caches processed message IDs; no double-processing.
+- **Dry-run**: see actions without touching Gmail.
 
 ---
 
@@ -34,8 +39,8 @@ Run as a background daemon (systemd, Task Scheduler, or Docker) and reclaim head
 ### 1) Clone & install
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/Oberon01/Gmail-Sentiment-Analyzer.git
+cd Gmail-Sentiment-Analyzer
 python -m venv .venv
 
 # Windows:
@@ -43,15 +48,15 @@ python -m venv .venv
 
 # macOS/Linux:
 source .venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-### 2) Enable Gmail API and create credentials
-1. In Google Cloud Console, enable Gmail API.
-2. Create an OAuth Client ID → Desktop App.
-3. Download the client secret as `credentials.json` and place it in the project folder (same directory you run the script from).
-
-4. First run will open a browser to authorize; a `token.pickle` will be stored locally.
+### 2) nable Gmail API and create credentials
+  1. In Google Cloud Console, enable Gmail API.
+  2. Create an OAuth Client ID → Desktop App.
+  3. Download as credentials.json and place it in the folder you will run GSA from (a working folder you choose).
+  4. On first run, a browser opens for OAuth and token.pickle is saved locally.
 
 ### 3) First-time setup
 ```bash
