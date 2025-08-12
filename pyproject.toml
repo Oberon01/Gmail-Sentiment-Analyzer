@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gmail-sentiment-analyzer"
+version = "0.9.0b1"
+description = "Autonomous Gmail triage daemon: score, star, and silence."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{ name = "KT Johnson" }]
+keywords = ["gmail", "email", "automation", "nlp", "sentiment", "triage"]
+
+dependencies = [
+  "google-api-python-client>=2.146.0",
+  "google-auth-httplib2>=0.2.0",
+  "google-auth-oauthlib>=1.2.0",
+  "python-dotenv>=1.0.1",
+  "textblob>=0.18.0.post0",
+  "tenacity>=8.5.0",
+  "PyYAML>=6.0.1"
+]
+
+[project.scripts]
+# Uses your existing CLI in gmail_poll.py
+gsa = "gmail_poll:cli"
+
+[tool.setuptools]
+# This project is a set of standalone modules (not a package directory)
+py-modules = ["gmail_poll", "authenticate", "list_labels"]
+
+# Include non-code files via MANIFEST.in
+include-package-data = true

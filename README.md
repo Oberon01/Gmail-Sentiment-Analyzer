@@ -1,163 +1,156 @@
-# gmail\_poll
+# Gmail Sentiment Analyzer (GSA) — v0.9.0-beta
 
-> Autonomous Gmail triage daemon that watches your inbox, scores every message for **signal‑to‑noise**, and then acts: *archive the junk, star the gold, surfacing only what truly matters*.
-
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/status-beta-yellow)
+Autonomous Gmail triage daemon that watches your inbox, scores new mail, and automatically **stars**, **routes for review**, or **silences** the noise.
 
 ---
 
 ## Why?
 
-Your inbox should empower you, not bury you. *gmail\_poll* applies lightweight NLP to slice daily mail into three buckets:
+Your inbox should empower you, not bury you. GSA applies lightweight NLP to slice daily mail into three buckets:
 
-| Bucket                       | Action                   | Definition                                    |
-| ---------------------------- | ------------------------ | --------------------------------------------- |
-| **Important & Urgent**       | **Star + Keep**        | Directly impacts your day; you must see this. |
-| **Important but Not Urgent** | **Label / Review**   | Matters, but can wait until planned review.   |
-| **Low Value**                | **Archive / Delete** | Ads, notifications, social clutter.           |
+| Bucket                     | Action            | Definition                                    |
+|---------------------------|-------------------|-----------------------------------------------|
+| **Important & Urgent**    | **Star**          | Directly impacts your day; must see this.     |
+| **Important, Not Urgent** | **Add to Review** | Matters, but can wait until planned review.   |
+| **Low Value**             | **Trash/Archive** | Ads, notifications, social clutter.           |
 
-Run as a background daemon (systemd, Docker, or cron) and reclaim head‑space you can invest elsewhere.
+Run as a background daemon (systemd, Task Scheduler, or Docker) and reclaim head-space.
 
 ---
 
 ## Features
 
-* **Sentiment & priority scoring** powered by a distilled Transformer (≈40 MB, runs on CPU)
-* **Rule overlay**: whitelist/blacklist domains or subjects for deterministic routing
-* **Zero‑touch operation**: authenticates with Gmail via OAuth2 service account; token auto‑refresh
-* **Observable**: JSON logs → stdout; integrate with Loki/Grafana in one line
-* **Stateless**: keeps a local cache of processed message IDs to avoid re‑processing
-* **Dry‑run mode**: see what *would* happen without touching your mail
-
----
-
-## Architecture
-
-```
-┌───────────────┐      poll (1 min)
-│   systemd     │────────────────┐
-└──────┬────────┘                │
-       │ ExecStart               │  Google API
-┌──────▼────────┐   HTTP+OAuth   │
-│  gmail_poll   │──────────────▶│ Gmail
-│   daemon      │                │
-└──────┬────────┘ <──────────────┘
-       │ writes
-┌──────▼────────┐    JSON log
-│ local_cache   │───────────▶ Vector ➜ Loki ➜ Grafana
-└───────────────┘
-```
+- **Lightweight NLP**: sentiment proxy via TextBlob (CPU-only; no big model).
+- **Rules overlay**: whitelist/blacklist or always-star specific senders/subjects.
+- **Resilient**: exponential backoff for Gmail API calls; won’t crash on blips.
+- **Observable**: logs to console and rotating file `gsa.log`.
+- **Idempotent**: caches processed message IDs to avoid reprocessing.
+- **Dry-run**: see exactly what would happen without changing Gmail.
 
 ---
 
 ## Installation
 
-### 1. Clone & install
+### 1) Clone & install
 
 ```bash
-git clone https://github.com/Oberon01/gmail_poll.git
-cd gmail_poll
+git clone https://github.com/<your-username>/<your-repo>.git
+cd <your-repo>
 python -m venv .venv
+
+# Windows:
+.venv\Scripts\activate
+
+# macOS/Linux:
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Create a Google Cloud App
+### 2) Enable Gmail API and create credentials
+1. In Google Cloud Console, enable Gmail API.
+2. Create an OAuth Client ID → Desktop App.
+3. Download the client secret as `credentials.json` and place it in the project folder (same directory you run the script from).
 
-1. Go to [https://console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials)
-2. **Create OAuth Client ID → Desktop App**
-3. Download `credentials.json` into `~/.config/gmail_poll/`
+4. First run will open a browser to authorize; a `token.pickle` will be stored locally.
 
-### 3. Configure
-
-Create `.env` (or systemd EnvironmentFile) with:
-
-```ini
-# .env
-gmail_poll_LABEL_REVIEW="@Action/Review"
-gmail_poll_POLL_INTERVAL=60          # seconds
-gmail_poll_CACHE_PATH="/var/lib/gmail_poll/cache.db"
-```
-
-(Optional) tweak `config.yaml` to modify model threshold, rules, or labels.
-
-### 4. First‑run authentication
-
+### 3) First-time setup
 ```bash
-python -m gmail_poll --auth
+python gmail_poll.py init           # writes .env and rules.yaml in current dir
+python gmail_poll.py labels         # list Gmail labels and their IDs
 ```
 
-A browser will open; grant access once. Token is stored & auto‑refreshes.
-
-### 5. Run
-
-```bash
-python -m gmail_poll --daemon          # foreground
-# or install as service
-sudo cp deploy/gmail_poll.service /etc/systemd/system/
-sudo systemctl enable --now gmail_poll
-```
-
----
-
-## Usage
-
-| Command                      | Description                               |
-| ---------------------------- | ----------------------------------------- |
-| `--auth`                     | Perform one‑time OAuth handshake          |
-| `--once`                     | Process inbox once then exit              |
-| `--daemon`                   | Start continuous polling loop             |
-| `--dry-run`                  | Log planned actions without mutating mail |
-| `--rules path/to/rules.yaml` | Load additional static routing rules      |
-
----
-
-## Roadmap
-
-* [ ] Plug‑in sentiment model hot‑swap (OpenAI, local LLM, spaCy)
-* [ ] Web UI dashboard (FastAPI + React) to tweak rules live
-* [ ] Multi‑account support (G‑suite + personal)
-* [ ] Export daily triage metrics → Obsidian vault integration
-
----
-
-## Contributing
-
-PRs are welcome! Please:
-
-1. Create a feature branch
-2. Run `pre-commit run --all-files`
-3. Submit your PR
-
----
-
-## 🪪 License
-
-`gmail_poll` is released under the MIT License. See [LICENSE](LICENSE) for details.
-
-
-## Quick start
-
-```bash
-pip install -r requirements.txt
-python gmail_poll.py init   # writes .env and rules.yaml in current dir
-python gmail_poll.py --once --dry-run  # test once without changes
-python gmail_poll.py --daemon          # run continuously
-```
-
-List available Gmail labels and IDs:
-
-```bash
-python gmail_poll.py labels
-```
-
-Config via `.env`:
-
-```
+## Edit `.env` (created by `init`) to set your review label (name or ID):
+```env
 LABEL_ID_REVIEW=Review
 POLL_INTERVAL=600
 GMAIL_POLL_CACHE=~/.cache/gmail_poll/cache.db
 GSA_LOG_LEVEL=INFO
 ```
+> Tip: While testing, set `POLL_INTERVAL=90` for quicker feedback.
+
+## Usage
+### **Dry-run once** (no changes to Gmail):
+```bash
+python gmail_poll.py --once --dry-run
+```
+
+### **Live once** (applies actions, good for verification):
+```bash
+python gmail_poll.py --once
+# Then check Gmail:
+#   label:starred newer_than:10m
+#   in:trash newer_than:10m
+#   label:Review newer_than:10m   (or your chosen review label)
+```
+
+### **Daemon mode** (continuous):
+```bash
+python gmail_poll.py --daemon
+```
+
+### **Custom rules file**:
+```bash
+python gmail_poll.py --once --dry-run --rules rules.yaml
+```
+
+## **Rules** (`rules.yaml`)
+Created by `init`. Example:
+
+```yaml
+whitelist:
+  - "@yourcompany.com"
+  - "vip.client@example.com"
+
+blacklist:
+  - "@examplemailer.com"
+
+always_star:
+  - "boss@yourcompany.com"
+  - "spouse@example.com"
+  ```
+
+## **Logging & Cache**
+- Console + rotating file log: `gsa.log` (created in the working directory).
+- Cache DB for seen message IDs: `~/.cache/gmail_poll/cache.db`.
+
+To re-test the same messages in dry-run, delete or rename the cache DB.
+
+## Run as a service
+### Linux (systemd user service)
+Use the sample unit `SYSTEMD-gsa.service`:
+```bash
+# Example layout (user service)
+mkdir -p ~/gsa && cp -r <repo>/* ~/gsa
+systemctl --user enable --now gsa@$(whoami).service
+```
+
+### Windows (Task Scheduler)
+Create a basic task that runs:
+```bash
+python <path>\gmail_poll.py --daemon
+```
+
+Set **Start in** to the project folder so logs/config resolve correctly.
+
+## Security & Privacy
+- Scope used: `https://www.googleapis.com/auth/gmail.modify`
+- Tokens are stored locally as `token.pickle` next to your `credentials.json`.
+- Single-user, local tool. No data leaves your machine beyond Gmail API calls you authorize.
+
+## Troubleshooting
+- No output in daemon: lower `POLL_INTERVAL` to `90` for faster feedback.
+
+- Review label not applied: ensure it exists in Gmail; use `python gmail_poll.py labels` and set `LABEL_ID_REVIEW` to that name or ID.
+
+- Dry-run shows nothing after first time: cached IDs are skipping; remove the cache DB to re-process.
+
+- Want chatty live logs: look for `LIVE`: lines in console/`gsa.log` during actions.
+
+## Roadmap
+- Hot-swap sentiment backends (spaCy/LLM).
+- Minimal web UI to tweak rules and thresholds.
+- Multi-account support.
+- Export daily triage metrics for journaling/Obsidian.
+
+## License
+MIT — see LICENSE.

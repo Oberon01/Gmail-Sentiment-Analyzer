@@ -1,9 +1,0 @@
-whitelist:
-  - trusted@ally.com
-  - receipts@paypal.com
-  - alerts@bankofamerica.com
-
-blacklist:
-  - noreply@facebookmail.com
-  - newsletter@junkads.net
-  - deals@shopping-spam.org

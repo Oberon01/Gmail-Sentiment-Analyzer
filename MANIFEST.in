@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include rules.yaml.example
+include .env.example
+
+# Never ship user secrets/tokens
+exclude token.pickle
+exclude credentials.json
