@@ -129,6 +129,10 @@ Create a basic task that runs:
 ```bash
 python <path>\gmail_poll.py --daemon
 ```
+### Docker Run
+```bash
+docker run --rm -it -v "%cd%:/app" oberon01/gsa:/0.9.0-beta gsa dry-run
+```
 
 Set **Start in** to the project folder so logs/config resolve correctly.
 

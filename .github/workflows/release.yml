@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'        # runs on version tags like v0.9.0-beta, v1.0.0
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # needed to attach artifacts to GitHub Releases
+
+jobs:
+  test:
+    name: Smoke test (CLI help)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.10', '3.11']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package (editable) and deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .  # builds from pyproject.toml
+
+      - name: CLI should print help
+        shell: bash
+        run: |
+          gsa --help
+          python -c "import gmail_poll; print('import-ok')"
+
+  build:
+    name: Build distributions
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+          ls -l dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+
+  github_release:
+    name: Attach artifacts to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Create GitHub Release (or update)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, 'rc') }}
+
+  publish_testpypi:
+    name: Publish to TestPyPI (beta/rc tags)
+    if: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, 'rc') }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Upload to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+  publish_pypi:
+    name: Publish to PyPI (stable tags)
+    if: ${{ !contains(github.ref_name, '-beta') && !contains(github.ref_name, 'rc') }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  docker:
+    name: Build & push Docker image (optional)
+    # Run this job only on version tags (no secrets used here)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    # Expose secrets as env so we can test presence at the step level
+    env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        IS_STABLE: ${{ !contains(github.ref_name, '-beta') && !contains(github.ref_name, 'rc') }}
+
+    steps:
+        - uses: actions/checkout@v4
+
+        - name: Docker meta
+          id: meta
+          uses: docker/metadata-action@v5
+          with:
+            images: docker.io/${{ env.DOCKERHUB_USERNAME }}/gsa
+            tags: |
+              type=ref,event=tag
+              type=raw,value=latest,enable=${{ env.IS_STABLE == 'true' }}
+
+        - name: Log in to Docker Hub
+          if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
+          uses: docker/login-action@v3
+          with:
+            username: ${{ env.DOCKERHUB_USERNAME }}
+            password: ${{ env.DOCKERHUB_TOKEN }}
+
+        - name: Build and push
+          if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
+          uses: docker/build-push-action@v6
+          with:
+            context: .
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}

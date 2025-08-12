@@ -1,22 +1,31 @@
-#environment
-.venv
-
-# Python
+# Python bytecode
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
 
-# Local secrets
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs & local state
+gsa.log
+*.db
+.cache/
 .env
-token.pickle
-token.enc
+rules.yaml
+
+# Secrets (keep examples committed instead)
 credentials.json
-*.key
-*.log
-*.yaml
+token.pickle
 
-# Docker
-*.tar
+# OS / IDE
+.DS_Store
+Thumbs.db
 .vscode/
-
-# Output
-gmail_logs/
+.idea/
